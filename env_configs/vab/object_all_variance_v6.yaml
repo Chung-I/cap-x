@@ -1,0 +1,96 @@
+# v6 hill-climb: bypass ContactGraspNet for grasp planning. Use the
+# privileged-style recipe: get_object_pose -> top-down grasp quat. The
+# privileged baseline (v4) hits 70% with this exact recipe; the question
+# is how close we get when segmentation is the only noise source.
+
+env:
+  _target_: capx.envs.tasks.franka.franka_libero_env.FrankaLiberoCodeEnv
+  cfg:
+    _target_: capx.envs.tasks.base.CodeExecEnvConfig
+    low_level:
+      _target_: capx.envs.simulators.vab.FrankaVabEnv
+      task_yaml_path: /k8s-nfs/personal/haoru/gap-x/Variational-Automation-Benchmark/tasks/libero_object_all_variance/pick_up_the_alphabet_soup_and_place_it_in_the_basket.yaml
+      privileged: false
+      camera_w: 800
+      camera_h: 512
+    privileged: false
+    apis:
+      - FrankaLiberoApi
+    prompt: |
+      You are controlling a Franka Emika robot with API described below.
+      Goal: {libero_environment_goal}
+
+      Object names (use exactly these strings; do NOT use synonyms):
+        alphabet_soup, basket, salad_dressing, cream_cheese, milk, tomato_sauce, butter
+
+      IMPORTANT — preferred grasp recipe (more reliable than sample_grasp_pose):
+        ```python
+        import numpy as np
+        TOP_DOWN_QUAT = np.array([0.0, 1.0, 0.0, 0.0])  # gripper pointing -Z
+
+        # 1) grasp
+        soup_pos, _ = get_object_pose("alphabet_soup", use_multiview=True)
+        open_gripper()
+        goto_pose(soup_pos, TOP_DOWN_QUAT, z_approach=0.15)
+        close_gripper()
+
+        # 2) lift
+        goto_pose(soup_pos + np.array([0, 0, 0.25]), TOP_DOWN_QUAT)
+
+        # 3) place
+        basket_pos, _ = get_object_pose("basket", use_multiview=True)
+        DROP_QUAT = np.array([0.0, 0.0, 1.0, 0.0])  # alternative top-down for placing
+        goto_pose(basket_pos + np.array([0, 0, 0.25]), DROP_QUAT, z_approach=0.10)
+        open_gripper()
+        ```
+      The TOP_DOWN_QUAT [0,1,0,0] above is the same one the privileged API uses; it points the gripper straight down with the fingers along +Y. Avoid sample_grasp_pose unless the simple top-down approach failed twice.
+
+      You may write python code comments for reasoning but ONLY write the executable Python code and do not write it in code fences.
+
+    multi_turn_prompt: |
+      The following code blocks were just executed:
+      ```python
+      {executed_code}
+      ```
+      The current console stdout is:
+      ```
+      {console_stdout}
+      ```
+      The current console stderr is:
+      ```
+      {console_stderr}
+      ```
+
+      Decision rules:
+        - 'FINISH' only if the visual feedback shows alphabet_soup INSIDE the basket (resting in the basket cavity, not next to it).
+        - Otherwise 'REGENERATE'. Common fixes:
+            * If soup never lifted (still on floor): the grasp likely missed; retry with a wider z_approach (e.g. 0.20) or sample a fresh pose with sample_grasp_pose("alphabet_soup", use_multiview=True).
+            * If soup is on the floor next to the basket: re-grasp the soup, then go to basket_pos + [0, 0, 0.10] (much closer to the basket center) with DROP_QUAT and open_gripper.
+            * If gripper is empty above basket but soup not visible: the grasp succeeded but soup tipped out; re-grasp.
+
+      Format:
+      - 'REGENERATE' followed immediately by new Python code in a fenced code block (```python...```), OR
+      - 'FINISH'
+
+api_servers:
+  - _target_: capx.serving.launch_pyroki_server.main
+    port: 8136
+    host: 127.0.0.1
+    robot: panda_description
+    target_link: panda_hand
+
+  - _target_: capx.serving.launch_contact_graspnet_server.main
+    port: 8135
+    host: 127.0.0.1
+
+  - _target_: capx.serving.launch_sam3_server.main
+    device: cuda
+    port: 8134
+    host: 127.0.0.1
+
+record_video: true
+use_img_differencing: true
+output_dir: ./outputs/vab_object_all_variance_v6
+
+trials: 10
+num_workers: 6

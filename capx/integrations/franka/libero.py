@@ -312,7 +312,25 @@ class FrankaLiberoApi(ApiBase):
             position: (3,) XYZ in meters (world frame).
             quaternion_wxyz: (4,) WXYZ unit quaternion (world frame).
         """
+        import os as _os
+
         start_time = time.time()
+
+        # Optional MuJoCo-fallback mode: use env's _get_object_pose, which has a
+        # MuJoCo body-name fallback that returns ground-truth pose in robot base
+        # frame (same frame as goto_pose / IK / camera extrinsics in obs).
+        # Set CAPX_MUJOCO_GRASP=1 to enable. Used in hill-climb experiments to
+        # isolate manipulation quality from SAM3 grounding noise.
+        if _os.environ.get("CAPX_MUJOCO_GRASP", "0") == "1":
+            try:
+                obj_pos_robot, obj_quat_robot = self._env._get_object_pose(object_name)
+                print(
+                    f"get_object_pose [mujoco] in {time.time() - start_time:.3f}s: "
+                    f"pos_robot={obj_pos_robot}"
+                )
+                return np.asarray(obj_pos_robot, dtype=np.float64), np.asarray(obj_quat_robot, dtype=np.float64)
+            except Exception as exc:
+                print(f"[mujoco-pose] fallback failed for '{object_name}': {exc}; falling through to SAM3")
 
         result = self.get_object_3d_points_and_masks_from_language(
             object_name, use_multiview=use_multiview
@@ -354,6 +372,7 @@ class FrankaLiberoApi(ApiBase):
             position: (3,) XYZ in meters (world frame).
             quaternion_wxyz: (4,) WXYZ unit quaternion (world frame).
         """
+        import os as _os
         start_time = time.time()
 
         result = self.get_object_3d_points_and_masks_from_language(
@@ -363,6 +382,42 @@ class FrankaLiberoApi(ApiBase):
 
         if len(pc_segment) == 0:
             raise ValueError(f"Could not segment object '{object_name}'")
+
+        # Optional simple-grasp mode: return segment centroid + top-down quat, mirroring
+        # FrankaLiberoPrivilegedApi.sample_grasp_pose. Set CAPX_SIMPLE_GRASP=1 to enable.
+        # Bypasses ContactGraspNet, which often produces side-grasps that fail on small
+        # grocery items. Centroid-based top-down grasp matches the privileged baseline
+        # that hits ~70% on libero_object_all_variance.
+        if _os.environ.get("CAPX_SIMPLE_GRASP", "0") == "1":
+            pc_segment_filt, _ = self.filter_noise(pc_segment)
+            if len(pc_segment_filt) == 0:
+                pc_segment_filt = pc_segment
+            centroid = np.median(pc_segment_filt, axis=0).astype(np.float64)
+            top_down_quat = np.array([0.0, 1.0, 0.0, 0.0], dtype=np.float64)
+            print(
+                f"sample_grasp_pose [simple] in {time.time() - start_time:.3f}s: "
+                f"centroid={centroid}, quat=top-down"
+            )
+            return centroid, top_down_quat
+
+        # Optional MuJoCo-fallback grasp mode: use env's _get_object_pose (which has
+        # MuJoCo body-name fallback) to anchor the grasp position, ignoring SAM3
+        # entirely. This is effectively the privileged path. Set CAPX_MUJOCO_GRASP=1
+        # to enable. Useful as a controlled experiment to bound improvement.
+        # Note: env._get_object_pose returns positions in the robot base frame, which
+        # is the same convention used by goto_pose / PyRoki IK and the rest of this
+        # API (camera extrinsics in obs are also robot-frame).
+        if _os.environ.get("CAPX_MUJOCO_GRASP", "0") == "1":
+            try:
+                obj_pos_robot, _ = self._env._get_object_pose(object_name)
+                top_down_quat = np.array([0.0, 1.0, 0.0, 0.0], dtype=np.float64)
+                print(
+                    f"sample_grasp_pose [mujoco] in {time.time() - start_time:.3f}s: "
+                    f"pos_robot={obj_pos_robot}, quat=top-down"
+                )
+                return np.asarray(obj_pos_robot, dtype=np.float64), top_down_quat
+            except Exception as exc:
+                print(f"[mujoco-grasp] fallback failed for '{object_name}': {exc}; falling through to ContactGraspNet")
 
         # Build full scene point cloud in world frame from both cameras
         obs = self.get_observation()

@@ -1,0 +1,92 @@
+# v5 hill-climb: object-name hint + grasp-verification pattern + no FINISH
+# without basket distance check. Targets the failure modes seen in baseline:
+#  - SAM3 mis-segmentation (grasp slip / wrong object) -> verify after grasp
+#  - drop position outside basket -> verify after drop
+#  - early FINISH on visual ambiguity -> require explicit print-based check
+
+env:
+  _target_: capx.envs.tasks.franka.franka_libero_env.FrankaLiberoCodeEnv
+  cfg:
+    _target_: capx.envs.tasks.base.CodeExecEnvConfig
+    low_level:
+      _target_: capx.envs.simulators.vab.FrankaVabEnv
+      task_yaml_path: /k8s-nfs/personal/haoru/gap-x/Variational-Automation-Benchmark/tasks/libero_object_all_variance/pick_up_the_alphabet_soup_and_place_it_in_the_basket.yaml
+      privileged: false
+      camera_w: 800
+      camera_h: 512
+    privileged: false
+    apis:
+      - FrankaLiberoApi
+    prompt: |
+      You are controlling a Franka Emika robot with API described below.
+      Goal: {libero_environment_goal}
+
+      Object names (use exactly these strings; do NOT use synonyms like "soup_can" or "woven_basket"):
+        alphabet_soup, basket, salad_dressing, cream_cheese, milk, tomato_sauce, butter
+
+      Recommended pattern:
+        1. open_gripper()
+        2. soup_pos, soup_quat = sample_grasp_pose("alphabet_soup", use_multiview=True)
+        3. goto_pose(soup_pos, soup_quat, z_approach=0.15); close_gripper()
+        4. lift: goto_pose(soup_pos + [0, 0, 0.25], soup_quat)
+        5. **Grasp-verify**: print(get_object_pose("alphabet_soup")[0])  -- should show z > 0.10. If not, the grasp slipped: open gripper and retry from step 2.
+        6. basket_pos, _ = get_object_pose("basket", use_multiview=True)
+        7. goto_pose(basket_pos + [0, 0, 0.20], [0, 0, 1, 0])  -- hover above basket
+        8. goto_pose(basket_pos + [0, 0, 0.05], [0, 0, 1, 0])  -- descend close to basket center
+        9. open_gripper()
+       10. retreat: goto_pose(basket_pos + [0, 0, 0.30], [0, 0, 1, 0])
+       11. **Place-verify**: print(np.linalg.norm((get_object_pose("alphabet_soup")[0][:2]) - (get_object_pose("basket")[0][:2])))  -- should show < 0.10. If >= 0.10, regrasp (back to step 2).
+
+      Print intermediate poses with print() so you can see them in the next turn's stdout.
+      You may write python code comments for reasoning but ONLY write the executable Python code and do not write it in code fences. Imports must be explicit (e.g. `import numpy as np`).
+
+    multi_turn_prompt: |
+      The following code blocks were just executed:
+      ```python
+      {executed_code}
+      ```
+      The current console stdout is:
+      ```
+      {console_stdout}
+      ```
+      The current console stderr is:
+      ```
+      {console_stderr}
+      ```
+
+      Decision:
+        - 'FINISH' ONLY if both:
+            (a) the visual feedback shows alphabet_soup INSIDE the basket, AND
+            (b) the printed XY-distance between alphabet_soup and basket (from step 11) is < 0.10 m.
+          If you have not run the place-verify print, REGENERATE one more code block to print that distance.
+        - Otherwise 'REGENERATE' and apply the recommended fix:
+            * if soup is on the floor next to basket -> regrasp and retry the place
+            * if soup is still in the gripper or not at basket -> drive to basket
+            * if grasp-verify showed soup z is still on the floor -> retry grasp from a different angle (sample_grasp_pose again)
+
+      Format:
+      - 'REGENERATE' followed immediately by new Python code in a fenced code block (```python...```), OR
+      - 'FINISH'
+
+api_servers:
+  - _target_: capx.serving.launch_pyroki_server.main
+    port: 8126
+    host: 127.0.0.1
+    robot: panda_description
+    target_link: panda_hand
+
+  - _target_: capx.serving.launch_contact_graspnet_server.main
+    port: 8125
+    host: 127.0.0.1
+
+  - _target_: capx.serving.launch_sam3_server.main
+    device: cuda
+    port: 8124
+    host: 127.0.0.1
+
+record_video: true
+use_img_differencing: true
+output_dir: ./outputs/vab_object_all_variance_v5
+
+trials: 10
+num_workers: 6
