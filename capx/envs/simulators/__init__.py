@@ -68,3 +68,15 @@ except Exception:
     # import traceback
     print("R1Pro not installed!")
     # traceback.print_exc()
+
+# VAB (Variational-Automation-Benchmark) wrapper. Reuses the LIBERO venv and
+# robosuite 1.4 stack but loads tasks from VAB YAMLs.
+try:
+    from .vab import FrankaVabEnv
+
+    register_env("franka_vab_low_level", FrankaVabEnv)
+except Exception:
+    import traceback
+
+    print("VAB not installed!")
+    traceback.print_exc()

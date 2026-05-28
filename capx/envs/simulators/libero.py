@@ -21,14 +21,17 @@ here = os.path.dirname(os.path.abspath(__file__))
 vendor_root = os.path.normpath(os.path.join(here, "..", "third_party", "LIBERO"))
 if os.path.isdir(vendor_root) and vendor_root not in sys.path:
     sys.path.append(vendor_root)
-# try:
-from libero import benchmark  # type: ignore[import-not-found]
-from libero.envs import OffScreenRenderEnv  # type: ignore[import-not-found]
-from libero.utils import get_libero_path  # type: ignore[import-not-found]
-# except Exception as e:  # pragma: no cover - optional dependency
-#     raise ModuleNotFoundError(
-#         "LIBERO not available; add submodule or run `uv sync --extra libero`."
-#     ) from e
+
+# LIBERO-PRO imports are lazy: when VAB's `libero` package is installed
+# instead of LIBERO-PRO, `from libero import benchmark` fails at top-level.
+# We only need these inside FrankaLiberoEnv, not for FrankaVabEnv to import.
+try:
+    from libero import benchmark  # type: ignore[import-not-found]
+    from libero.envs import OffScreenRenderEnv  # type: ignore[import-not-found]
+    from libero.utils import get_libero_path  # type: ignore[import-not-found]
+    _LIBERO_PRO_AVAILABLE = True
+except ImportError:
+    _LIBERO_PRO_AVAILABLE = False
 
 
 class FrankaLiberoEnv(BaseEnv):

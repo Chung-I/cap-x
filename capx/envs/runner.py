@@ -36,8 +36,8 @@ from capx.utils.parallel_eval import run_parallel_with_setup
 # Constants
 # ---------------------------------------------------------------------------
 
-TRIAL_TIMEOUT_SECONDS = 1000
-MAX_TRIAL_RETRIES = 3
+TRIAL_TIMEOUT_SECONDS = 2400
+MAX_TRIAL_RETRIES = 2
 
 
 # ---------------------------------------------------------------------------

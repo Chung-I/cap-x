@@ -139,6 +139,22 @@ def _image_to_data_url(image: PIL.Image.Image) -> str:
     return f"data:image/png;base64,{b64}"
 
 
+def _molmo_server_alive(base_url: str, timeout: float = 0.5) -> bool:
+    """Probe the Molmo server. Returns False if no listener is on the port."""
+    import socket
+    from urllib.parse import urlparse
+
+    try:
+        u = urlparse(base_url)
+        host = u.hostname or "127.0.0.1"
+        port = u.port or 8122
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(timeout)
+            return s.connect_ex((host, int(port))) == 0
+    except Exception:
+        return False
+
+
 def init_molmo(
     # model_name: str = "allenai/moldmo-2-8b:free", # OpenRouter
     # model_name: str = "allenai/Molmo2-O-7B",
@@ -158,12 +174,22 @@ def init_molmo(
         mapping from object name to a pixel coordinate tuple (x, y). If a point
         could not be parsed, the value is (None, None).
     """
-    # chat_url = f"{base_url.rstrip('/')}/v1/chat/completions" # SGLANG 
+    # chat_url = f"{base_url.rstrip('/')}/v1/chat/completions" # SGLANG
     chat_url = f"{base_url.rstrip('/')}/chat/completions" # vLLM
     session = requests.Session()
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
+
+    server_alive = _molmo_server_alive(base_url)
+    if not server_alive:
+        # Probe once at init; skip per-call connection retries (which cost ~7s
+        # each due to backoff) when no server is listening. Molmo points are
+        # only used for visualization in non-privileged grasp/pose paths;
+        # downstream code already handles `(None, None)` gracefully.
+        print(
+            f"[molmo] No server reachable at {base_url}; pointer queries will be skipped."
+        )
 
     def det_fn(
         image: PIL.Image.Image, objects: list[str] | None = None
@@ -180,6 +206,9 @@ def init_molmo(
 
         if not objects:
             return {}
+
+        if not server_alive:
+            return {obj: (None, None) for obj in objects}
 
         img_url = _image_to_data_url(image)
         all_points: dict[str, tuple[int | None, int | None]] = {}
