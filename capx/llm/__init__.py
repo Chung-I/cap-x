@@ -7,7 +7,7 @@ streaming, ensemble queries, and backward-compatible aliases.
 
 from capx.llm.client import (
     CLAUDE_MODELS,
-    ENSEMBLE_CONFIGS,
+    ENSEMBLE_TEMPERATURES,
     GPT_MODELS,
     OPENROUTER_MODELS,
     OPENROUTER_SERVER_URL,
@@ -25,7 +25,7 @@ from capx.llm.client import (
 
 __all__ = [
     "CLAUDE_MODELS",
-    "ENSEMBLE_CONFIGS",
+    "ENSEMBLE_TEMPERATURES",
     "GPT_MODELS",
     "OPENROUTER_MODELS",
     "OPENROUTER_SERVER_URL",

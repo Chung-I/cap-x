@@ -26,7 +26,7 @@ from capx.envs.configs.loader import DictLoader
 # Re-export LLM client symbols for backward compatibility
 from capx.llm.client import (  # noqa: F401
     CLAUDE_MODELS,
-    ENSEMBLE_CONFIGS,
+    ENSEMBLE_TEMPERATURES,
     GPT_MODELS,
     OPENROUTER_MODELS,
     OPENROUTER_SERVER_URL,
