@@ -45,12 +45,11 @@ class LiberoBatchLaunchArgs:
     # Override via env var: CAP_MODEL=openrouter/meta-llama/llama-4-maverick:free
     models: list[str] = field(
         default_factory=lambda: [
-            os.getenv("CAP_MODEL", "openrouter/meta-llama/llama-4-maverick:free"),
+            os.getenv("CAP_MODEL", "openrouter/google/gemma-4-31b-it:free"),
         ]
     )
 
     # VDM model used for visual differencing between turns.
-    # Defaults to the best free vision model on OpenRouter.
     # Override via env var: CAP_VDM_MODEL=openrouter/google/gemma-4-31b-it:free
     vdm_model: str = field(
         default_factory=lambda: os.getenv(

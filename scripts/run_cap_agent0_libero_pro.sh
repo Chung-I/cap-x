@@ -26,7 +26,7 @@ cd "$(git rev-parse --show-toplevel)"
 mkdir -p logs
 
 NUM_WORKERS=${1:-4}
-CAP_MODEL=${CAP_MODEL:-openrouter/meta-llama/llama-4-maverick:free}
+CAP_MODEL=${CAP_MODEL:-openrouter/google/gemma-4-31b-it:free}
 CAP_VDM_MODEL=${CAP_VDM_MODEL:-openrouter/google/gemma-4-31b-it:free}
 
 echo "=== Checking required servers ==="
