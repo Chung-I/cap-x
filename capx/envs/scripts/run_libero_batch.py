@@ -41,11 +41,21 @@ class LiberoBatchLaunchArgs:
         ]
     )
 
-    # Models to run
+    # Models to run for the main policy (code generation + ensemble).
+    # Override via env var: CAP_MODEL=openrouter/meta-llama/llama-4-maverick:free
     models: list[str] = field(
         default_factory=lambda: [
-            "openrouter/meta-llama/llama-4-maverick:free",
+            os.getenv("CAP_MODEL", "openrouter/meta-llama/llama-4-maverick:free"),
         ]
+    )
+
+    # VDM model used for visual differencing between turns.
+    # Defaults to the best free vision model on OpenRouter.
+    # Override via env var: CAP_VDM_MODEL=openrouter/google/gemma-4-31b-it:free
+    vdm_model: str = field(
+        default_factory=lambda: os.getenv(
+            "CAP_VDM_MODEL", "openrouter/google/gemma-4-31b-it:free"
+        )
     )
 
     server_url: str = "http://127.0.0.1:8110/chat/completions"  # local server
@@ -188,7 +198,7 @@ def main(args: LiberoBatchLaunchArgs) -> None:
                 config_path=config_path,
                 server_url=args.server_url,
                 model=model,
-                visual_differencing_model=model,
+                visual_differencing_model=args.vdm_model,
                 temperature=args.temperature,
                 max_tokens=args.max_tokens,
                 reasoning_effort=args.reasoning_effort,

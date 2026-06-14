@@ -45,6 +45,11 @@ VLM_MODELS = [
     # Free-tier OpenRouter models (routed via openrouter/ prefix)
     "openrouter/meta-llama/llama-4-maverick:free",
     "openrouter/meta-llama/llama-4-scout:free",
+    "openrouter/google/gemma-4-31b-it:free",
+    "openrouter/google/gemma-4-26b-a4b-it:free",
+    "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "openrouter/nvidia/nemotron-nano-12b-v2-vl:free",
+    "openrouter/nex-agi/nex-n2-pro:free",
     "openrouter/google/gemini-2.5-flash-preview:free",
     "openrouter/mistralai/mistral-small-3.1-24b-instruct:free",
 ]
