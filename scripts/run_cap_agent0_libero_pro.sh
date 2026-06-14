@@ -7,9 +7,9 @@
 #
 # Model and server configuration (env vars):
 #   CAP_MODEL           Main policy model (code gen + ensemble)
-#                       default: google/gemma-4-31b-it
+#                       default: google/gemma-4-12b-it
 #   CAP_VDM_MODEL       Visual differencing model
-#                       default: google/gemma-4-31b-it
+#                       default: google/gemma-4-12b-it
 #   CAP_LLM_SERVER_URL  Endpoint for the main LLM
 #                       default: http://cml30.csie.ntu.edu.tw:8200/v1/chat/completions
 #   CAP_VDM_SERVER_URL  Endpoint for the VDM
@@ -30,8 +30,8 @@ cd "$(git rev-parse --show-toplevel)"
 mkdir -p logs
 
 NUM_WORKERS=${1:-4}
-CAP_MODEL=${CAP_MODEL:-google/gemma-4-31b-it}
-CAP_VDM_MODEL=${CAP_VDM_MODEL:-google/gemma-4-31b-it}
+CAP_MODEL=${CAP_MODEL:-google/gemma-4-12b-it}
+CAP_VDM_MODEL=${CAP_VDM_MODEL:-google/gemma-4-12b-it}
 CAP_LLM_SERVER_URL=${CAP_LLM_SERVER_URL:-http://cml30.csie.ntu.edu.tw:8200/v1/chat/completions}
 CAP_VDM_SERVER_URL=${CAP_VDM_SERVER_URL:-http://cml30.csie.ntu.edu.tw:8200/v1/chat/completions}
 

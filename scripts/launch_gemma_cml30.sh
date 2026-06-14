@@ -1,8 +1,8 @@
 #!/bin/bash
-# Launch Gemma 4 31B IT on cml30, serving an OpenAI-compatible API on port 8200.
+# Launch Gemma 4 12B IT QAT (w4a16 compressed-tensors) on cml30.
+# Serves an OpenAI-compatible API on port 8200.
 #
-# Model is ~100 GB in BF16 (multimodal: vision+audio+text). Uses 2× RTX A6000 (49 GB each)
-# with INT8 quantization via bitsandbytes and tensor parallelism.
+# Model is ~7 GB in w4a16 QAT format. Runs comfortably on a single RTX A6000 (49 GB).
 #
 # Usage (run on cml30):
 #   bash ~/Codes/cap-x/scripts/launch_gemma_cml30.sh
@@ -17,32 +17,29 @@ set -e
 
 # Uses shell ~-expansion so the path works whether HOME=/home/chungyili or /home/ra/chungyili
 ACTUAL_HOME=$(echo ~)
-MODEL_DIR="${HF_MODEL_DIR:-${ACTUAL_HOME}/.cache/huggingface/hub/models--google--gemma-4-31b-it/}"
-GPUS="${GEMMA_GPUS:-0,1}"
+MODEL_DIR="${HF_MODEL_DIR:-${ACTUAL_HOME}/.cache/huggingface/hub/models--google--gemma-4-12B-it-qat-w4a16-ct/}"
+GPUS="${GEMMA_GPUS:-0}"
 PORT="${GEMMA_PORT:-8200}"
 
 if [ ! -d "$MODEL_DIR" ]; then
     echo "ERROR: Model directory not found: $MODEL_DIR"
-    echo "Download it first: run ~/download_gemma.py with ~/.venv-gemma/bin/python"
+    echo "Download it first:"
+    echo "  ~/.venv-gemma/bin/huggingface-cli download google/gemma-4-12B-it-qat-w4a16-ct \\"
+    echo "      --local-dir ~/.cache/huggingface/hub/models--google--gemma-4-12B-it-qat-w4a16-ct/"
     exit 1
 fi
 
-# Count number of GPUs in GPUS
-NUM_GPUS=$(echo "$GPUS" | tr ',' '\n' | wc -l)
-
-echo "=== Launching Gemma 4 31B IT ==="
-echo "  GPUs:  $GPUS  (tensor-parallel-size $NUM_GPUS)"
+echo "=== Launching Gemma 4 12B IT QAT (w4a16) ==="
+echo "  GPU:   $GPUS"
 echo "  Port:  $PORT"
 echo "  Model: $MODEL_DIR"
 
 CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=$GPUS \
 "${ACTUAL_HOME}/.venv-gemma/bin/python" -m vllm.entrypoints.openai.api_server \
     --model "$MODEL_DIR" \
-    --served-model-name google/gemma-4-31b-it \
+    --served-model-name google/gemma-4-12b-it \
     --port "$PORT" \
     --host 0.0.0.0 \
-    --quantization bitsandbytes \
-    --load-format bitsandbytes \
-    --tensor-parallel-size "$NUM_GPUS" \
-    --max-model-len 8192 \
+    --quantization compressed-tensors \
+    --max-model-len 16384 \
     --gpu-memory-utilization 0.90
