@@ -57,7 +57,17 @@ class LiberoBatchLaunchArgs:
         )
     )
 
-    server_url: str = "http://127.0.0.1:8110/chat/completions"  # local server
+    server_url: str = field(
+        default_factory=lambda: os.getenv(
+            "CAP_LLM_SERVER_URL", "http://127.0.0.1:8110/chat/completions"
+        )
+    )
+
+    vdm_server_url: str = field(
+        default_factory=lambda: os.getenv(
+            "CAP_VDM_SERVER_URL", "http://127.0.0.1:8110/chat/completions"
+        )
+    )
 
     # Output directory base
     output_dir: str = "./outputs/libero_batch_run"
@@ -198,6 +208,7 @@ def main(args: LiberoBatchLaunchArgs) -> None:
                 server_url=args.server_url,
                 model=model,
                 visual_differencing_model=args.vdm_model,
+                visual_differencing_model_server_url=args.vdm_server_url,
                 temperature=args.temperature,
                 max_tokens=args.max_tokens,
                 reasoning_effort=args.reasoning_effort,
