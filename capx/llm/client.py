@@ -69,12 +69,7 @@ OPENROUTER_SERVER_URL = "http://localhost:8110/chat/completions"
 # Ensemble configuration
 # ---------------------------------------------------------------------------
 
-ENSEMBLE_CONFIGS = [
-    # Gemini-3-Pro only — best single model per CaP-Bench (Figure 1).
-    # 3 temps for diversity; synthesis still uses Gemini-3-Pro.
-    # ~45% faster than full multimodel (no Claude/GPT latency bottleneck).
-    ("openai/gpt-5.4", [0.1, 0.5, 0.9]),
-]
+ENSEMBLE_TEMPERATURES = [0.1, 0.5, 0.9]
 
 # ---------------------------------------------------------------------------
 # Helper functions
@@ -437,10 +432,16 @@ def query_model_streaming(
 def query_model_ensemble(
     args: "LaunchArgs | ModelQueryArgs",
     prompt: list[dict],
-    synthesis_model: str = "openai/gpt-5.4",
+    synthesis_model: str | None = None,
     is_multiturn = False
 ) -> dict[str, Any]:
-    """Query 9 models (3 models x 3 temperatures) and synthesize final output."""
+    """Query a model at multiple temperatures and synthesize the final output.
+
+    Candidates are sampled from args.model at ENSEMBLE_TEMPERATURES.
+    synthesis_model defaults to args.model when not specified.
+    """
+    if synthesis_model is None:
+        synthesis_model = args.model
 
     def query_single(model: str, temp: float) -> dict:
         query_args = ModelQueryArgs(
@@ -460,7 +461,7 @@ def query_model_ensemble(
             return {"model": model, "temp": temp, "content": error_msg, "ok": False}
 
     # Build all (model, temp) pairs and query in parallel
-    tasks = [(m, t) for m, temps in ENSEMBLE_CONFIGS for t in temps]
+    tasks = [(args.model, t) for t in ENSEMBLE_TEMPERATURES]
     responses = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=9) as executor:
         futures = {executor.submit(query_single, m, t): (m, t) for m, t in tasks}
