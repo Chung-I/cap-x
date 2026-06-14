@@ -42,6 +42,11 @@ VLM_MODELS = [
     "deepseek/deepseek-r1",
     "qwen/qwen3.5-122b-a10b",
     "moonshotai/kimi-k2",
+    # Free-tier OpenRouter models (routed via openrouter/ prefix)
+    "openrouter/meta-llama/llama-4-maverick:free",
+    "openrouter/meta-llama/llama-4-scout:free",
+    "openrouter/google/gemini-2.5-flash-preview:free",
+    "openrouter/mistralai/mistral-small-3.1-24b-instruct:free",
 ]
 CLAUDE_MODELS = ["anthropic/claude-opus-4-5", "anthropic/claude-haiku-4-5"]
 OSS_MODELS = [

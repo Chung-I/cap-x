@@ -41,11 +41,10 @@ class LiberoBatchLaunchArgs:
         ]
     )
 
-    # Models to run (copied from run_batch.py default)
+    # Models to run
     models: list[str] = field(
         default_factory=lambda: [
-            # "openai/gpt-5.4",
-            "google/gemini-3.1-pro-preview"
+            "openrouter/meta-llama/llama-4-maverick:free",
         ]
     )
 
@@ -189,6 +188,7 @@ def main(args: LiberoBatchLaunchArgs) -> None:
                 config_path=config_path,
                 server_url=args.server_url,
                 model=model,
+                visual_differencing_model=model,
                 temperature=args.temperature,
                 max_tokens=args.max_tokens,
                 reasoning_effort=args.reasoning_effort,
@@ -200,7 +200,7 @@ def main(args: LiberoBatchLaunchArgs) -> None:
                 num_workers=args.num_workers,
                 record_video=args.record_video,
                 # We do NOT pass output_dir here to avoid the logic that uses config_stem
-                output_dir=None, 
+                output_dir=None,
                 debug=args.debug,
                 use_oracle_code=args.use_oracle_code,
             )
