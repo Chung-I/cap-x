@@ -35,7 +35,7 @@ echo "  GPUs:  $GPUS  (tensor-parallel-size $NUM_GPUS)"
 echo "  Port:  $PORT"
 echo "  Model: $MODEL_DIR"
 
-CUDA_VISIBLE_DEVICES=$GPUS \
+CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=$GPUS \
 "${ACTUAL_HOME}/.venv-gemma/bin/python" -m vllm.entrypoints.openai.api_server \
     --model "$MODEL_DIR" \
     --served-model-name google/gemma-4-31b-it \
