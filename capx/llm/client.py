@@ -43,7 +43,7 @@ VLM_MODELS = [
     "qwen/qwen3.5-122b-a10b",
     "moonshotai/kimi-k2",
     # Local OSS models (routed via server_url / CAP_LLM_SERVER_URL)
-    "google/gemma-4-12b-it",
+    "Qwen/Qwen3-VL-8B-Thinking",
     # Free-tier OpenRouter models (routed via openrouter/ prefix)
     "openrouter/meta-llama/llama-4-maverick:free",
     "openrouter/meta-llama/llama-4-scout:free",
@@ -62,7 +62,7 @@ OSS_MODELS = [
     "deepseek/deepseek-r1",
     "qwen/qwen3.5-122b-a10b",
     "moonshotai/kimi-k2",
-    "google/gemma-4-12b-it",
+    "Qwen/Qwen3-VL-8B-Thinking",
 ]
 OPENROUTER_MODELS = [
     "openrouter/google/gemini-2.5-pro-preview",

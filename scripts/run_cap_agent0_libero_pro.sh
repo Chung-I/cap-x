@@ -21,7 +21,7 @@
 #   bash scripts/run_cap_agent0_libero_pro.sh 2
 #
 # Prerequisites: all API servers must be running before calling this script.
-#   Start Gemma on cml30: ssh cml30.csie.ntu.edu.tw 'tmux new-session -d -s gemma "bash ~/Codes/cap-x/scripts/launch_gemma_cml30.sh"'
+#   Start Qwen3-VL locally: bash scripts/launch_qwen3vl_local.sh
 #   Start vision servers: bash scripts/start_servers_cml18.sh
 #   Required ports: 8114 (SAM3), 8115 (GraspNet), 8116 (PyRoKi)
 set -e
@@ -30,10 +30,10 @@ cd "$(git rev-parse --show-toplevel)"
 mkdir -p logs
 
 NUM_WORKERS=${1:-4}
-CAP_MODEL=${CAP_MODEL:-google/gemma-4-12b-it}
-CAP_VDM_MODEL=${CAP_VDM_MODEL:-google/gemma-4-12b-it}
-CAP_LLM_SERVER_URL=${CAP_LLM_SERVER_URL:-http://cml30.csie.ntu.edu.tw:8200/v1/chat/completions}
-CAP_VDM_SERVER_URL=${CAP_VDM_SERVER_URL:-http://cml30.csie.ntu.edu.tw:8200/v1/chat/completions}
+CAP_MODEL=${CAP_MODEL:-Qwen/Qwen3-VL-8B-Thinking}
+CAP_VDM_MODEL=${CAP_VDM_MODEL:-Qwen/Qwen3-VL-8B-Thinking}
+CAP_LLM_SERVER_URL=${CAP_LLM_SERVER_URL:-http://192.168.0.87:8200/v1/chat/completions}
+CAP_VDM_SERVER_URL=${CAP_VDM_SERVER_URL:-http://192.168.0.87:8200/v1/chat/completions}
 
 echo "=== Checking required servers ==="
 all_up=true
@@ -58,7 +58,7 @@ if [ "$all_up" = false ]; then
     echo ""
     echo "ERROR: Required servers are not reachable. Start them first:"
     echo "  bash scripts/start_servers_and_eval.sh"
-    echo "  ssh cml30.csie.ntu.edu.tw 'tmux new-session -d -s gemma \"bash ~/Codes/cap-x/scripts/launch_gemma_cml30.sh\"'"
+    echo "  (on local machine) bash ~/Codes/cap-x/scripts/launch_qwen3vl_local.sh"
     exit 1
 fi
 
